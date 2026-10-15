@@ -1,0 +1,58 @@
+name: Newsdesk aktualisieren
+
+on:
+  schedule:
+    - cron: "0 5 * * *"   # täglich 05:00 UTC = 07:00 MESZ / 06:00 MEZ
+  workflow_dispatch:
+    inputs:
+      model:
+        description: "Ollama-Modell"
+        default: "gemma3:4b"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: newsdesk
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    environment:
+      name: github-pages
+    env:
+      NEWSDESK_MODEL: ${{ inputs.model || 'gemma3:4b' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ollama installieren und Modell laden
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          (ollama serve > /tmp/ollama.log 2>&1 &)
+          for i in $(seq 1 30); do curl -s http://127.0.0.1:11434/api/version && break; sleep 2; done
+          ollama pull "$NEWSDESK_MODEL"
+
+      - name: Ausgabe erstellen
+        run: python3 pipeline/newsdesk.py --out data.json
+
+      - name: Ausgabe speichern
+        run: |
+          git config user.name "newsdesk-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data.json
+          git commit -m "Ausgabe $(date -u +%d.%m.%Y) (automatisch, $NEWSDESK_MODEL)" || echo "keine Änderungen"
+          git push
+
+      - name: Website zusammenstellen
+        run: |
+          mkdir _site
+          cp index.html data.json manifest.webmanifest robots.txt icon-*.png _site/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - uses: actions/deploy-pages@v4

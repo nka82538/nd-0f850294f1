@@ -1,0 +1,18 @@
+# Newsdesk-Quellen (Kürzel_Rubrik  URL). Kürzel: anth oai cnbc bi ts ntv
+anth_news https://www.anthropic.com/news
+oai_news https://openai.com/news/rss.xml
+cnbc_tech https://www.cnbc.com/id/19854910/device/rss/rss.html
+cnbc_markets https://www.cnbc.com/id/20910258/device/rss/rss.html
+cnbc_invest https://www.cnbc.com/id/15839069/device/rss/rss.html
+cnbc_retail https://www.cnbc.com/id/10000116/device/rss/rss.html
+cnbc_biz https://www.cnbc.com/id/10001147/device/rss/rss.html
+bi_all https://feeds.businessinsider.com/custom/all
+ts_wirtschaft https://www.tagesschau.de/wirtschaft/index~rss2.xml
+ts_technologie https://www.tagesschau.de/wissen/technologie/index~rss2.xml
+ts_finanzen https://www.tagesschau.de/wirtschaft/finanzen/index~rss2.xml
+ts_unternehmen https://www.tagesschau.de/wirtschaft/unternehmen/index~rss2.xml
+ts_digitales https://www.tagesschau.de/wirtschaft/digitales/index~rss2.xml
+ntv_wirtschaft https://www.n-tv.de/wirtschaft/rss
+ntv_technik https://www.n-tv.de/technik/rss
+ntv_boerse https://www.n-tv.de/wirtschaft/der_boersen_tag/rss
+ollama_blog https://ollama.com/blog/rss.xml
