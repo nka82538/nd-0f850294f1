@@ -179,9 +179,9 @@ def target_sentences(text):
     return min(15, int(len(text) / 4 / 130))
 
 
-def summarize(a, text, model, host):
+def summarize(a, text, model, host, preview_only=False):
     german = a["source"] in GERMAN
-    n = target_sentences(text)
+    n = 0 if preview_only else target_sentences(text)
     lang = "German" if german else "English"
     long_part = (f"Then write a longer summary of about {n} sentences, split into 2 to 4 sections. Each section has a short, "
                  f"specific heading (h) and flowing narrative text (t), like a magazine story."
@@ -254,7 +254,12 @@ def main():
             log("summary failed, using feed teaser:", a["title"], e)
             preview, sections = a["teaser"], []
         if not preview:
-            preview = a["teaser"] or " ".join(sentences(text)[:2])
+            # second, simpler attempt: preview only
+            try:
+                preview, _ = summarize(dict(a), text[:4000], args.model, args.host, preview_only=True)
+            except Exception:
+                preview = ""
+        preview = preview or a["teaser"]
         full = a["title"] + " " + text
         cos = [k for k, pat in COMPANIES.items() if re.search(pat, full)] if {"claude", "ki"} & set(a["topics"]) else []
         art = dict(source=a["source"], title=a["title"], url=a["url"], published=a["published"], topics=a["topics"],
