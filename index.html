@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#0e0f11">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Newsdesk">
+<title>Newsdesk</title>
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: dark reading column. Plain header, sticky topic rail (Heute first), source meter for topics,
+   airy rows: meta line, headline, teaser, tags | square thumbnail. Light orange is the only accent. */
+:root {
+  --bg: #0e0f11;
+  --panel: #17191c;
+  --raise: #1f2125;
+  --fg: #f2f0eb;
+  --muted: #a19e98;
+  --faint: #66645f;
+  --line: #26282c;
+  --accent: #ffb26e;
+  --accent-ink: #1c1207;
+  --accent-soft: rgba(255, 178, 110, 0.13);
+  --s1: #ffb26e; --s2: #f2f0eb; --s3: #d98a4e; --s4: #a19e98; --s5: #b9673a; --s6: #6e6b66; --s7: #ffd8b0; --s8: #45433f;
+  --font-ui: "Geist", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --bg: #f6f5f2; --panel: #ffffff; --raise: #efede8; --fg: #151514; --muted: #64615c; --faint: #a29f99;
+  --line: #e3e0da; --accent: #d26a17; --accent-ink: #ffffff; --accent-soft: rgba(210, 106, 23, 0.1);
+  --s1: #d26a17; --s2: #151514; --s3: #e8955a; --s4: #64615c; --s5: #a24f1c; --s6: #a29f99; --s7: #f3c08f; --s8: #cfccc6;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--font-ui); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 720px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 80px; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Header */
+header.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+header.top h1 { margin: 0; font: 700 28px/1 var(--font-ui); letter-spacing: -0.035em; }
+header.top h1 i { font-style: normal; color: var(--accent); }
+.stamp { margin-top: 8px; font: 11.5px/1.4 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.reload {
+  appearance: none; cursor: pointer; border: 1px solid var(--line); background: var(--panel); border-radius: 999px;
+  width: 40px; height: 40px; display: grid; place-items: center; color: var(--muted); flex: none;
+}
+.reload:hover { color: var(--accent); border-color: var(--accent); }
+.reload svg { width: 16px; height: 16px; }
+.reload.spin svg { animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Topic rail */
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); margin-inline: -16px; padding: 18px 16px 12px; }
+.rail { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.rail::-webkit-scrollbar { display: none; }
+.tab {
+  appearance: none; flex: none; cursor: pointer; border: 1px solid var(--line); background: transparent; border-radius: 999px;
+  padding: 9px 14px; display: inline-flex; align-items: baseline; gap: 7px; font: 600 13.5px/1 var(--font-ui); color: var(--muted);
+  transition: background .2s, color .2s, border-color .2s;
+}
+.tab .n { font: 500 11px/1 var(--font-mono); font-variant-numeric: tabular-nums; opacity: .75; }
+.tab:hover { color: var(--fg); }
+.tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+/* Source meter + legend, company chips */
+.dist { margin-top: 14px; display: grid; gap: 10px; }
+.meter { display: flex; height: 4px; border-radius: 2px; overflow: hidden; gap: 2px; }
+.meter span { display: block; height: 100%; min-width: 3px; transition: opacity .2s, flex-grow .3s; }
+.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  appearance: none; flex: none; cursor: pointer; border: 1px solid var(--line); background: var(--panel); border-radius: 8px;
+  padding: 7px 9px; display: inline-flex; align-items: center; gap: 7px; font: 500 11.5px/1 var(--font-mono); color: var(--muted);
+  letter-spacing: .02em; transition: border-color .2s, background .2s, color .2s;
+}
+.chip i { width: 8px; height: 8px; border-radius: 2px; display: block; }
+.chip img { width: 16px; height: 16px; border-radius: 4px; background: #fff; padding: 1px; display: block; }
+.chip b { font-weight: 500; color: var(--fg); }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.chip[aria-pressed="true"] b { color: var(--accent); }
+.chip:disabled { opacity: .35; cursor: default; }
+.chips.cos { flex-wrap: wrap; overflow: visible; }
+
+/* Sections */
+.section { margin-top: 30px; }
+.shead { display: flex; align-items: baseline; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.shead h2 { margin: 0; font: 600 13px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
+.shead .code { font: 600 10.5px/1 var(--font-mono); letter-spacing: .06em; padding: 4px 6px; border-radius: 4px; background: var(--raise); color: var(--fg); }
+.shead .cnt { font: 11px/1 var(--font-mono); color: var(--faint); }
+.shead .more { margin-left: auto; appearance: none; border: 0; background: none; cursor: pointer; padding: 0; font: 500 12px/1 var(--font-mono); color: var(--accent); }
+.shead .more:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* Rows */
+.row { display: grid; grid-template-columns: minmax(0, 1fr) 84px; gap: 18px; padding-block: 22px; border-bottom: 1px solid var(--line); }
+.anim .row { animation: rise .32s ease-out both; animation-delay: calc(var(--i, 0) * 30ms); }
+.row:last-child { border-bottom: 0; }
+@keyframes rise { from { opacity: .3; transform: translateY(6px); } }
+.row .body { display: grid; gap: 9px; min-width: 0; align-content: start; }
+.meta { display: flex; align-items: center; gap: 8px; font: 11px/1 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.meta .src { color: var(--fg); font-weight: 600; letter-spacing: .06em; }
+.new { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; }
+.row h3 { margin: 0; font: 600 17.5px/1.32 var(--font-ui); letter-spacing: -0.015em; text-wrap: balance; }
+.hl { appearance: none; border: 0; background: none; padding: 0; margin: 0; text-align: left; cursor: pointer; font: inherit; color: inherit; letter-spacing: inherit; text-wrap: balance; }
+.hl:hover { color: var(--accent); }
+.more-box { display: grid; gap: 12px; margin-top: 6px; padding: 16px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); animation: open .25s ease-out both; }
+@keyframes open { from { opacity: 0; transform: translateY(-4px); } }
+.more-box .label { font: 600 10.5px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.story { display: grid; gap: 10px; }
+.story h4 { margin: 10px 0 0; font: 600 15px/1.35 var(--font-ui); letter-spacing: -0.01em; color: var(--fg); text-wrap: balance; }
+.story h4:first-child { margin-top: 0; }
+.row .more-box p.long { color: var(--fg); font-size: 15px; line-height: 1.75; max-width: 64ch; opacity: .9; }
+.go { justify-self: start; font: 600 12px/1 var(--font-mono); letter-spacing: .04em; color: var(--accent); text-decoration: none; padding: 10px 12px; border: 1px solid var(--accent); border-radius: 8px; }
+.go:hover { background: var(--accent); color: var(--accent-ink); }
+.row.open h3, .row.open.read h3 { color: var(--fg); }
+.row.open.read p { color: var(--muted); }
+button.thumb { appearance: none; padding: 0; cursor: pointer; }
+.row p { margin: 0; color: var(--muted); font-size: 14.5px; line-height: 1.6; max-width: 62ch; overflow-wrap: anywhere; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { display: inline-flex; align-items: center; gap: 5px; font: 500 10.5px/1 var(--font-mono); letter-spacing: .03em; padding: 4px 6px 4px 4px; border-radius: 5px; background: var(--raise); color: var(--muted); }
+.tag img { width: 13px; height: 13px; border-radius: 3px; background: #fff; padding: 1px; }
+.thumb { width: 84px; height: 84px; border-radius: 10px; overflow: hidden; background: var(--panel); border: 1px solid var(--line); display: grid; place-items: center; align-self: start; margin-top: 2px; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: filter .3s, opacity .3s; }
+.thumb span { font: 600 11px/1 var(--font-mono); letter-spacing: .08em; color: var(--faint); }
+.row.read h3, .row.read p { color: var(--faint); }
+.row.read .meta .src { color: var(--faint); }
+.row.read .thumb img { filter: grayscale(1); opacity: .45; }
+
+.empty { margin-top: 28px; border: 1px dashed var(--line); border-radius: 14px; padding: 44px 16px; text-align: center; display: grid; gap: 6px; justify-items: center; color: var(--muted); }
+.empty strong { color: var(--fg); font: 600 16px/1.3 var(--font-ui); }
+.note { margin-top: 44px; font: 11px/1.7 var(--font-mono); color: var(--faint); }
+
+@media (max-width: 480px) {
+  .row { grid-template-columns: minmax(0, 1fr) 68px; gap: 14px; padding-block: 20px; }
+  .thumb { width: 68px; height: 68px; border-radius: 8px; }
+  .row h3 { font-size: 16.5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .anim .row { animation: none; }
+  .reload.spin svg { animation: none; }
+  .tab, .chip, .meter span, .thumb img { transition: none; }
+  .more-box { animation: none; }
+}
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Newsdesk<i>.</i></h1>
+      <div class="stamp" id="stamp">Lade Ausgabe …</div>
+    </div>
+    <button class="reload" id="reload" type="button" aria-label="Neueste Ausgabe laden" title="Neueste Ausgabe laden">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3h-3"/></svg>
+    </button>
+  </header>
+
+  <div class="bar">
+    <div class="rail" role="tablist" id="rail"></div>
+    <div class="dist" id="dist" hidden>
+      <div class="meter" id="meter" aria-hidden="true"></div>
+      <div class="chips" id="legend"></div>
+      <div class="chips cos" id="companies" hidden></div>
+    </div>
+  </div>
+
+  <main id="list"></main>
+  <p class="note">Nur frei lesbare Artikel. Quellen: Anthropic, OpenAI, Ollama, Groq, CNBC, Business Insider, tagesschau, n-tv. Bezahlartikel werden vor jeder Ausgabe aussortiert. Jeder Artikel hat eine Vorschau in seiner Originalsprache; Antippen öffnet die längere Zusammenfassung und den Link zum vollen Text beim Anbieter. Alle Artikel sind höchstens 2 Tage alt. Aktien: nur Tech- und KI-Werte (z.&nbsp;B. Nvidia, Microsoft, Apple, Alphabet, Amazon, Meta, TSMC, Samsung, SAP) und Berichte über den Tech-Sektor.</p>
+</div>
+
+<script>
+const TOPICS = [
+  { id: "claude", label: "Claude" },
+  { id: "ki", label: "KI" },
+  { id: "ecommerce", label: "E-Commerce" },
+  { id: "aktien", label: "Aktien" },
+];
+const SOURCES = [
+  { name: "Anthropic", code: "ANT", color: "--s1" },
+  { name: "OpenAI", code: "OAI", color: "--s2" },
+  { name: "Ollama", code: "OLL", color: "--s7" },
+  { name: "Groq", code: "GRQ", color: "--s3" },
+  { name: "CNBC", code: "CNBC", color: "--s4" },
+  { name: "Business Insider", code: "BI", color: "--s8" },
+  { name: "tagesschau", code: "TS", color: "--s5" },
+  { name: "n-tv", code: "NTV", color: "--s6" },
+];
+const COMPANIES = ["Anthropic", "OpenAI", "Google", "Microsoft", "Nvidia", "Apple", "Ollama", "Groq"];
+const LOGOS = {"Anthropic": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAZlBMVEX6+fUUFBMAAAD////9/Pj29fH///3///ttbWvY19QRERDe3dkNDQy9vLnv7urp6OQ6OjmJiIZOTUxEREO0tLEyMTCtrKmlpKEqKinR0Mx2dnSPjoyBgX5UVFJjYmHDw7+Yl5QdHRzi9ahqAAABsklEQVRYhe2V25aCMAxFtYFWsSBeEe/+/09Om6RQRoQ4j7M4LzYU0pPdps5mkyZN+t9KSD2B8Pv1ElVgUON4/U0GKBVqoV2gKSjhCwMrNUep1Ec5Rmolt2A2IUFlfKgyP95ouQP8wsmeoMmXKbEDk7MBt2ydNBWpvREmgK1tEpy9b9j5B3YrxJiscUFKotDSniwId9Jc/Ou2jDASFHWR1cDQqyvmOXjfmjGKEoRtL5b0u4ww5pIa4OZfVjeAk20xljiWYGSEbjFTqb9gNM9QblLE209jAUZt6dy6N+FO24EYr0KMyaPtnM6YMT7GaiCEtOpM04ZeEePBEtsRA1z3Ea3SkaIuMkcRRkI4VxpQPRifwxQgtAAL29ruEOMZi5sP1sDYnG0W9yRirAUYaePeRJcRY7wPWGCEb2KMfDKLzxYYoVWRMjrYHl06ihFeePMcFpFOWXMZjWIMmHLQjaBqtz/M159q0Iue855GXcQN/hEjv7vpJND3NusIxjDd/QcKHYWX0TBGMkjHLn5M/Y1dREXaV28NbinU8Vd611EobnBU/2lMSe9zPIGrRONJkyZN6uoHDOIUEM1IBJkAAAAASUVORK5CYII=", "OpenAI": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAY1BMVEX///8AAACYmJj5+fnz8/P29vaOjo4YGBjQ0NDDw8Pl5eXX19dQUFDLy8t1dXWfn5+tra0uLi47Ozu2trZfX19oaGhLS0s0NDQmJiaHh4dubm4gICBGRkbt7e0KCgoSEhJ+fn57FpRlAAACjUlEQVRYhe1WW4OyIBB1Ak0EL3kpM63+/6/8mAGR6kPdfdqHzsPGKnPmdhiMoi+++OPgaZ7L35tXJyB0v+MQN3Ao2M/tS213SoTMK4Wrqhjrc1tNu+0rgEdj19nZi4Xvs8+009gFc0fTizI55bsIdNizvXhoK5XSOh/1ugmbOUiAyoZCFVi86tQg2yY4ANAve2LQlf+qAai3zKfkCK3dDPC0ucxi0Jxi3f6KZom1bzPn+GbsOBj2EHgNM8HB+ZIjPVTE1gGs6Ir1AGfZzwT0LC4oFfxzZSSxFT0NWitRdPQJKiugSb+DexPlAGnQPqcEmUeQYkqXbMlE6QjCp0uLlvsEbDAKdrUkUUJQz5NONfIJEGVJ2dst9DBYA2HS8wlQBrGvJ95qaYbaUJnoFoLOhp7p3kFta5cADHsJlleUzWBib4N9aEx6/yegqXDA9RQUY260xx5wzD8ISoaCOuM/Q0iMzGaHZ1hN5SuBdp6dTI4iOFdae9qpc/UHAQbFTQ6BsaIniaIFp86FCPjbkPBQuBZJLJqyopXqnSA42PTO0TafpiGOYV7MDbAE+cpsjedT60phpPxCUCwz9wOT2T3r1pQCBuYTZGtDCQeyWnQr8X4c5WsRx7UDnaJM6V7spojTaaZ6OQKGvS6C9hheE9mTOHj1mAmO4mLlGEBs6Xn3OklcBLBuT2I0FdbDrLfNkrXNJHEHKgyxTB/rnWTQ04Tv4HbYvOLHN5mVnletii1zKqO3TfTLIMGBs+NmxSSgbqgQKUriMjd961ZzkFTru7rgT+/y4f3qneSDXZePmnr2L+6b97KHuHm2Z3UVNd1FjRTJ6f1L4eex3PZ9Hr0jsxSnX7h3HPqDN3j+v/jir+AfWRkZ4tp3YAUAAAAASUVORK5CYII=", "Google": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAApVBMVEVHcEz4+Pj8/Pz9/f38/Pz59/by8/Pz8/T7+/v9/f309PX29/fy8vP29/f///84qlfsUENHiPT8wBLrTD88rFpJivNEhvUqp006g/T7/PvT4P3rRjjqPSzg8Ojva1uWz6T7ugWWt/j4xcH+78jA4slxv4T85eTtW0v61tRctGaDrPdSj/YtffRmmvb1p6L+3I790mKuuUHykIg+nZ3G2Pv0lCs8o3o82clfAAAADnRSTlMAoetQ0/wdM7c/jGYSeQFEN8MAAAMjSURBVFiF5VdZm6IwEBQURBFQRGOGwxOvUWd0dvf//7QNEpLOAeLDPm09+QFV6erudGKn888wsgeeYTiOYXgD+2227TqmD2A67jsi3Z6vgdNtSXdNHf0ZRxuJgXb1Cr3BK77RRC9gNNLtxuVpEA3ZHLymF6i10W3H9/2aXKp8a38k2FvtFPrSR/tbNp7GSRLH4+y2l172Vf4IC19sDkk8HRNMCeI4OWyE13ikCAj532Qlu1IgSLIj/KIn8z349sHphE8l4uQBv/EkAzB1WTwGmDIkGbQpmnBA8g5Tkc4kEiEPTk0FLJk/1fPFSoAAMmA/TsZZdiCV1PFhCDZ/emP+ieWNRUzj/SYjEgrf9/mmGPIEMH6cgeY5Zhq+P2QCbILgRyWQ3IRv8VFmE5iqg+2KplDi16Dy4LInX2H4bIL40UDjcJUahAS/SeEPuIHG4cgp2K4KhdVBlzEdTHkffj0FwhVs2Q8FKXuH5Tb8LgXCb7DKZSHhcuYvy2bkkzCk2AKBxYxjUmB+fSmwahb45AbL8dptKzApBWZcoPuehUlNBG0tTCoBXxIAVaACX0DgMmegCkoS+TijfRDegcB5XeFcKixAGelYqw4OXHZieEepLwD7he31orSwZs8t2spsouOnQBQEua/BtYzg8sGeVLOdzxOShHtEgHYq/xcNYMZPumq08yxuV/egEIiCVObjTzUFbKyywuJTyScuZIVrGcBkwR1gNtL4tWSHIqqAlpCe0vWFncAvK+BYyGkIJA+nHXWL0xz9zJUUwoOBn6wWEyBBRPmSID8hFAR/ZnMpA/B8BXcLZuKZCVQgKEEUFmAfiLeMHlQIGD8gP4OIChAbk1QfgHi9ogqBjAj9gATIVy1wOvpphBR2EUEES+t0JHBzpPNzVQGhJZz1WOZ3+sJRQAqHRHoudBbW3LKESw6RWJ4Qw2kpNaan8uGeqjR2yyd2ysYY6vj6izbWHXK1F+5hqyMR16xfwG2hgN16PqlF7b+VCqYm/2/YaAq/gu3USmCn3V8327A0Gtgy2v/zG7mOqIEtx1Uv6M3oe0bPtAjMnuG9ytz/jb8i8rQexpJ/GAAAAABJRU5ErkJggg==", "Microsoft": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAG1BMVEVHcEz/uQB/ugAApO/yUCLyUCIApO9/ugD/uQAiNQNqAAAABXRSTlMAf4CAgMY5tpAAAABASURBVFiF7cy5DQAhAMRAH3//FcM1sBESiaeAoUcNyowwMDAwMDAwuBy0jDNEvFcz+DJG9AcrMjAwMDAwMLgcbA4XXcky94g6AAAAAElFTkSuQmCC", "Nvidia": "data:image/png;base64,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", "Apple": "data:image/png;base64,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", "Ollama": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAG90lEQVR4nNVbzZXivBK9mjMBqDPQYnazwC8C3BEMGYyJADoCTATQEZiOAHo5K8NyVtARCBIYnEG9hZGn/C8JaOa75+i0GrCkKpVKVVeywJ1BRApACGAAQF2KvPzlOALILn8/ABwAHIQQx3uP8eYgopCIFkSk6XpoIkqIKHy0XJ0gIklEMyI630DoLmVElFvVv4FPEryKM+UWph4t/OSTBa9CE1H0CMEVEaUPFLwKTZ7WIDyEnwCIkXvyErIsw2azAQCEYQilvMZUg2lXSokgCNrazQDMhRDLm3TaBMrXXSP2+z1JKQlAUVar1dVTu1qtSu0qpWi/33c9MruX8Elbj1prUkqVhDclTVNv4bXWjW1KKUlr3fVocmvhO1UeRVFphrgywjD0VgBvp9rudDrte3x/K+GTrl7O53NpdtbrdW3mfKwgTdNSG1rr0mdSSjqfezeg6yyB8v29E5vNpjRLBqPRyGW2aphOp8XzURQVn3MrWK/XNk0tumT80iG88fad2G63RX00GhX1KIoaf2ML/syPHz8a+9jtdjZNTYlo2vbl16YPKd9TY5vWj8djUR8Oh431w+FQ1M2W9vHxUTyrlEIQBBgOh8UWx58Jw7CoDwaDxr57MCOijXViRQ5JTBiGrWudm2uapqXftpUoimprnYN/FwSB7TCJiFJb4aPeplqErO7PQRD0CtxXqrsId7Dc51iithRKS4By0/cOJKSUnf8bhGFYMvfT6YTtduvlKxwxI6KVECJr/JY6Ir028FmuWkDV5IMg6NwS0zStBVRVM79iCRjEXOavTHgFIHJVqVKqcFjGsZ1OJxyPx9KM/vz5E6vVqrOtMAyhtUYURXh7ewOQO8OXlxcopTAYDEqOr83CejAhomXNCshx7RvwKLCt+ESDNg7TJ764IDZy8zjgPkkEgCRxD8hsnsmy5qVsgYmpfAVyDg91krIX4/G4ZtZBECAIAkgpkWUZBoOBV1qslEKSJNjtdkVbh8OhFB+Yvj0ULIkoFEJsAfTH+402FMc1M78m87NFU+bpuRT+8gbkyN4mSVIawGQy8RnAVZjNZtcmXNoI7xxN8BkYjUauj98M3FF6BEVERApE5CQBn32lVB8xcVecz+cSW+RhBdEXAIGL93h/fy/qt+T9fCClxHT6N7p9fX11bSIAEVkl1QZc4z3c3KegK3GywKaX7uLgiYhHZ3cDnxTHJbn/ggZ629b8mnA4HDAejzGfz2uBSpZleH19xfPzM56eniCEgBACT09PeH5+LsLf6jPz+Rzj8bg1//cMiQFAwkVdfamo1ro0G3EcF9+t1+sabd5UlFIlOp2H2m08IE/IXJ2ytwKalgDnB8FyAB40KaVosViUBrrf7ylJktL2apTHuUWg+ayBK9aCKC3BSQHVzqrbTpUNTpKk5KRsAiYe4KRp2sgOc+z3+6v8krMCuElyttZAa01xHBfKMeZZFf58PpPWuigchhE2FpQkSalNl/H0wTkMrs5IV/DBLaIqJF+31WiSBzhda9plLG1DdNoGDXgI2nVAYQbYxAcYp9h21mcU1CZUNSnymX26bINH172Dc/NZlvVuT03f8zaCoB6M9uX61X6b2rDACUS0dFUb13yXY+Om3DSTcRzTYlGnIU2+0Zfg8NMjb36QHKmwaujZt++aLVBKabVG0zQtlDabzTp/e4NkaOScDvM93XbdcZ8RhiEtl8tiizNluVyWfmc7o3wX4IGXJRQAN0KEByZJklj3xM21r7gQLDw9d+QmNPCXFn8HIwq7wB2PSyq8WCwwmUyw2Wyw2+1qTk5KieFwiCiKnGJ77vw4X2iBbVGj/GKjFbgDfCQZYnDFUVkIXGjxCzvqzTH/B3E0jDA/F3CmU/4FeJ4NzE2FK2AJCyu4Ys3dBafTqahb+qQMbP0XCriclfVaAe/E8obGXWHuJQLW0eBb60UJyu/9dibUHheV7grHO0Oa+m6UElHnMUs1+rrigPJqVIkWC0Q2JgLquQdcPRb7jCOxKqrsU1/YTOYkyFIBijqWQpX5sbyudlNUuYCepXgm18vU1LEUqqdDjwLPHXrygNZrcn1KaEyVeccu+cCtsVwuawRsA2Iv4ZkSSjRs9Wrso88G0b0MVlcJz5RQcFY3uKR0U3BuseKMrS5Lt16V5RBC/A/AG+CfDd4LPPhhUeHbZcy9sFIAAAghIgBzj9DzruCp8yUveL2M1QrWCgAAIUT8+/fvF1xyhisuKd0D2a9fv16EEH4e3xEKgH7k7RCDC0OVwuOS19X4/v17RLd5O9QLf/78OX/79u1TZrwVlEeNS/r8FydjIvI+F785Loq4t0X8e4I3gXKOcXUjZWjKLSy8x1idX5x0BeVJSHAp5hX6vtfnT8hfn9/e+/X5/wNlXHCiCDNP5QAAAABJRU5ErkJggg==", "Groq": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAANlBMVEX0PgL0NgD0LwD3b0n0PgD////0OwD0PwL0PwH1PwL94Nb6qpT4knf+7+n1Uh/8y737u6r/+vet1+I9AAAACnRSTlPN////////2cClHGg5wwAAAZJJREFUWIXtl9tuxCAMRGMI3oZLCP//syWEzcPG2AikSq3qd04YPGPIsr2maluWdaqWf8APAXASgJohdABAO5gBIFg/BVDOTEkAbdI+AcDVGssoEAHqMCaqcUAWYIwbB+AeMkCPSzgFGLYJPAD8uT4MW/kSwDeBBah4rjcHd4YcQBUBxnBG5gC4pwvANoEBgL3Ws0ZmADlDVwV2fROgdBXAG7kJQKwCTiMrBQCI9E4agFtAlhAP57zWex4tGdUHKBn6qJSCtdF97oME4BqegAJ5moIEXBmi6nmiFAAJAfU8nrkiADVDVBGmJAA1Q0RRsXoCwLfWW2owEDvwR7Q2pCeATBUBAFX8smvvXWbd6+nZysQZ4UTdlrRAelm8F94nmhpjQQLAu6W+EUoBcI+l2BpLPTeT4caSBPC8ABFQY8VMJWkHxQaBmatSF0oTxp84uLcy1LsDTQ+BbkAx8ujNVABReJ9IgNwE27gP+gBrEgQIgDxdBQHiE4d/ncgAJwmQAOz7rAOwit//Nf9Mfx6wfU3V9g3dEURvNtjb0QAAAABJRU5ErkJggg=="};
+const TODAY_PER_TOPIC = 3;
+const MAX_AGE_MS = 2 * 24 * 60 * 60 * 1000; // nothing older than 2 days, undated articles are left out
+const recent = a => { const t = Date.parse(a.published || ""); return !isNaN(t) && Date.now() - t <= MAX_AGE_MS; };
+
+const store = {
+  get(k, d) { try { return JSON.parse(localStorage.getItem(k) || "null") ?? d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+};
+const state = {
+  articles: [], updatedAt: null, loaded: false, statusText: "",
+  view: "heute", source: null, company: null, animate: true,
+  read: new Set(store.get("newsdesk-read", [])), prevSeen: null, open: new Set(),
+};
+
+const $ = id => document.getElementById(id);
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+const pad = n => String(n).padStart(2, "0");
+const topicsOf = a => Array.isArray(a.topics) ? a.topics : (a.topic ? [a.topic] : []);
+const srcOf = name => SOURCES.find(s => s.name === name) || { name, code: name.slice(0, 4).toUpperCase(), color: "--s8" };
+const newest = (x, y) => (y.published || "").localeCompare(x.published || "");
+const isNew = a => state.prevSeen && !state.prevSeen.has(a.url);
+
+function when(iso) {
+  const d = new Date(iso); if (!iso || isNaN(d)) return "ohne Datum";
+  if (/T00:00:00(\+00:00|Z)$/.test(iso)) return pad(d.getDate()) + "." + pad(d.getMonth() + 1) + "."; // source gives only a day
+  return pad(d.getDate()) + "." + pad(d.getMonth() + 1) + ". " + pad(d.getHours()) + ":" + pad(d.getMinutes());
+}
+
+/* ---------- Per-device state: read articles and "seen at last visit" (localStorage) ---------- */
+function markRead(url) {
+  if (state.read.has(url)) return;
+  state.read.add(url);
+  store.set("newsdesk-read", [...state.read].slice(-600));
+  render();
+}
+try { for (const u of JSON.parse(localStorage.getItem("newsdesk-read") || "[]")) state.read.add(u); } catch (e) {}
+
+/* ---------- Rendering ---------- */
+function rowFor(a, i, showSource) {
+  const row = el("article", "row" + (state.read.has(a.url) ? " read" : ""));
+  row.style.setProperty("--i", String(Math.min(i, 10)));
+  const body = el("div", "body");
+  const meta = el("div", "meta");
+  if (isNew(a) && !state.read.has(a.url)) { const d = el("span", "new"); d.title = "Neu seit deinem letzten Besuch"; meta.append(d); }
+  if (showSource) meta.append(el("span", "src", srcOf(a.source).code));
+  meta.append(el("span", "", when(a.published)));
+  const open = state.open.has(a.url);
+  const lang = /[äöüß]|\b(der|die|das|und|nach|mit)\b/i.test(a.preview || a.teaser || "") ? "de" : "en";
+  const toggle = () => {
+    if (state.open.has(a.url)) state.open.delete(a.url); else { state.open.add(a.url); markRead(a.url); }
+    render();
+  };
+  const h3 = el("h3"); const hb = el("button", "hl", a.title); hb.type = "button";
+  hb.setAttribute("aria-expanded", String(open)); hb.onclick = toggle;
+  h3.append(hb);
+  body.append(meta, h3);
+  const preview = a.preview || a.teaser;
+  if (preview) { const pe = el("p", "", preview); pe.lang = lang; body.append(pe); }
+  const cos = (a.companies || []).filter(c => COMPANIES.includes(c));
+  if (cos.length && (state.view === "ki" || state.view === "claude" || state.view === "heute")) {
+    const tags = el("div", "tags");
+    for (const c of cos) { const t = el("span", "tag"); if (LOGOS[c]) { const im = el("img"); im.src = LOGOS[c]; im.alt = ""; t.append(im); } t.append(c); tags.append(t); }
+    body.append(tags);
+  }
+  if (open) {
+    const box = el("div", "more-box");
+    if (a.summary) {
+      box.append(el("span", "label", lang === "de" ? "Zusammenfassung" : "Summary"));
+      const parts = Array.isArray(a.summary) ? a.summary : [{ h: "", t: String(a.summary) }];
+      const story = el("div", "story"); story.lang = lang;
+      for (const part of parts) {
+        if (part.h) story.append(el("h4", "", part.h));
+        story.append(el("p", "long", part.t));
+      }
+      box.append(story);
+    } else {
+      box.append(el("span", "label", "Kurzmeldung · die Vorschau enthält bereits alles Wesentliche"));
+    }
+    const go = el("a", "go", "Originalartikel lesen ↗"); go.href = a.url; go.target = "_blank"; go.rel = "noopener";
+    box.append(go); body.append(box);
+  }
+  const th = el("button", "thumb"); th.type = "button"; th.tabIndex = -1; th.setAttribute("aria-hidden", "true"); th.onclick = toggle;
+  if (a.image) { const im = el("img"); im.src = a.image; im.alt = ""; im.loading = "lazy"; im.referrerPolicy = "no-referrer"; im.onerror = () => { im.remove(); th.append(el("span", "", srcOf(a.source).code)); }; th.append(im); }
+  else th.append(el("span", "", srcOf(a.source).code));
+  if (open) row.classList.add("open");
+  row.append(body, th);
+  return row;
+}
+
+function renderRail() {
+  const rail = $("rail"); rail.replaceChildren();
+  const views = [{ id: "heute", label: "Heute" }, ...TOPICS];
+  for (const v of views) {
+    const b = el("button", "tab"); b.type = "button"; b.setAttribute("role", "tab");
+    b.setAttribute("aria-selected", String(v.id === state.view));
+    b.append(v.label);
+    if (v.id !== "heute") b.append(el("span", "n", state.loaded ? String(state.articles.filter(a => topicsOf(a).includes(v.id)).length) : "–"));
+    else if (state.loaded && state.prevSeen) {
+      const fresh = state.articles.filter(a => isNew(a) && !state.read.has(a.url)).length;
+      if (fresh) b.append(el("span", "n", fresh + " neu"));
+    }
+    b.onclick = () => go(v.id);
+    rail.append(b);
+  }
+}
+
+function go(view) {
+  state.view = view; state.source = null; state.company = null; state.animate = true;
+  render(); window.scrollTo({ top: 0 });
+}
+
+function renderToday(list) {
+  for (const t of TOPICS) {
+    const all = state.articles.filter(a => topicsOf(a).includes(t.id)).sort(newest);
+    const sec = el("section", "section");
+    const h = el("div", "shead"); h.append(el("h2", "", t.label), el("span", "cnt", String(all.length)));
+    if (all.length > TODAY_PER_TOPIC) { const m = el("button", "more", "Alle " + all.length + " →"); m.type = "button"; m.onclick = () => go(t.id); h.append(m); }
+    sec.append(h);
+    if (!all.length) sec.append(el("p", "note", "In den letzten 2 Tagen nichts dazu in den Quellen."));
+    all.slice(0, TODAY_PER_TOPIC).forEach((a, i) => sec.append(rowFor(a, i, true)));
+    list.append(sec);
+  }
+}
+
+function renderTopic(list) {
+  const inTopic = state.articles.filter(a => topicsOf(a).includes(state.view));
+
+  const coBox = $("companies"); coBox.replaceChildren();
+  coBox.hidden = state.view !== "ki";
+  const byCompany = state.company ? inTopic.filter(a => (a.companies || []).includes(state.company)) : inTopic;
+  if (!coBox.hidden) {
+    for (const name of COMPANIES) {
+      const n = inTopic.filter(a => (a.companies || []).includes(name)).length;
+      const b = el("button", "chip"); b.type = "button"; b.disabled = n === 0;
+      b.setAttribute("aria-pressed", String(state.company === name));
+      if (LOGOS[name]) { const im = el("img"); im.src = LOGOS[name]; im.alt = ""; b.append(im); }
+      b.append(name + " ", el("b", "", String(n)));
+      b.onclick = () => { state.company = state.company === name ? null : name; state.source = null; render(); };
+      coBox.append(b);
+    }
+  }
+
+  const meter = $("meter"), legend = $("legend"); meter.replaceChildren(); legend.replaceChildren();
+  for (const s of SOURCES) {
+    const n = byCompany.filter(a => a.source === s.name).length;
+    if (!n) continue;
+    const seg = el("span"); seg.style.flexGrow = String(n); seg.style.background = "var(" + s.color + ")";
+    if (state.source && state.source !== s.name) seg.style.opacity = ".2";
+    meter.append(seg);
+    const b = el("button", "chip"); b.type = "button"; b.title = s.name;
+    b.setAttribute("aria-pressed", String(state.source === s.name));
+    const sw = el("i"); sw.style.background = "var(" + s.color + ")";
+    b.append(sw, s.code + " ", el("b", "", String(n)));
+    b.onclick = () => { state.source = state.source === s.name ? null : s.name; render(); };
+    legend.append(b);
+  }
+
+  const shown = state.source ? byCompany.filter(a => a.source === state.source) : byCompany;
+  if (!shown.length) {
+    const label = TOPICS.find(t => t.id === state.view).label;
+    const e = el("div", "empty"); e.append(el("strong", "", "Keine Artikel zu " + label), el("span", "", "In den letzten 2 Tagen hat keine Quelle darüber berichtet."));
+    list.append(e); return;
+  }
+  for (const s of SOURCES) {
+    const items = shown.filter(a => a.source === s.name).sort(newest);
+    if (!items.length) continue;
+    const sec = el("section", "section");
+    const h = el("div", "shead"); h.append(el("span", "code", s.code), el("h2", "", s.name), el("span", "cnt", String(items.length)));
+    sec.append(h);
+    items.forEach((a, i) => sec.append(rowFor(a, i, false)));
+    list.append(sec);
+  }
+}
+
+function render() {
+  if (state.loaded) {
+    const d = new Date(state.updatedAt);
+    $("stamp").textContent = "Stand " + (isNaN(d) ? "unbekannt" : pad(d.getDate()) + "." + pad(d.getMonth() + 1) + "." + String(d.getFullYear()).slice(2) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()))
+      + " · " + state.articles.length + " Artikel · gratis · max. 2 Tage";
+  } else {
+    $("stamp").textContent = state.statusText || "Lade Ausgabe …";
+  }
+  renderRail();
+  $("dist").hidden = state.view === "heute" || !state.loaded;
+  const list = $("list"); list.replaceChildren();
+  list.classList.toggle("anim", state.animate && state.loaded);
+  if (state.loaded) state.animate = false;
+  if (!state.loaded) {
+    const e = el("div", "empty"); e.append(el("strong", "", "Noch keine Ausgabe geladen"), el("span", "", "Hier erscheinen die Artikel, nach Thema und Quelle sortiert."));
+    list.append(e); return;
+  }
+  if (state.view === "heute") renderToday(list); else renderTopic(list);
+}
+
+/* ---------- Data ---------- */
+function applyFeed(d) {
+  if (d && Array.isArray(d.articles)) {
+    state.articles = d.articles.filter(recent); state.updatedAt = d.updatedAt || null; state.loaded = true;
+    // remember what this visit has seen, for the "new" dots next time
+    store.set("newsdesk-seen", state.articles.map(a => a.url));
+  } else { state.statusText = "Noch keine Ausgabe vorhanden"; }
+  render();
+}
+async function load() {
+  const res = await fetch("data.json?t=" + Date.now(), { cache: "no-store" });
+  if (!res.ok) throw new Error(res.status);
+  applyFeed(await res.json());
+}
+
+const seen = store.get("newsdesk-seen", null);
+state.prevSeen = seen ? new Set(seen) : null;
+render();
+load().catch(() => { state.statusText = "Ausgabe konnte nicht geladen werden · Internetverbindung prüfen"; render(); });
+$("reload").onclick = async () => {
+  const b = $("reload"); b.classList.add("spin");
+  try { await load(); } catch (e) { state.statusText = "Ausgabe konnte nicht geladen werden"; render(); }
+  finally { b.classList.remove("spin"); }
+};
+</script>
+</body>
+</html>
