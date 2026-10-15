@@ -198,9 +198,20 @@ def summarize(a, text, model, host):
     r = urllib.request.Request(host + "/api/chat", data=json.dumps(req).encode(), headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(r, timeout=900) as resp:
         out = json.loads(json.loads(resp.read())["message"]["content"])
-    preview = clean(out.get("preview", ""))
-    sections = [dict(h=clean(s.get("h", "")), t=clean(s.get("t", ""))) for s in out.get("sections", []) if s.get("t")]
+    preview = " ".join(sentences(clean(out.get("preview", "")))[:2])
+    # The model does not reliably respect the length; cut to the target so a summary never becomes a retelling.
+    sections, left = [], n
+    for s in out.get("sections", []):
+        sents = sentences(clean(s.get("t", "")))[:left]
+        if not sents:
+            break
+        sections.append(dict(h=clean(s.get("h", "")), t=" ".join(sents)))
+        left -= len(sents)
     return preview, (sections if n >= 3 else [])
+
+
+def sentences(text):
+    return [x for x in re.split(r"(?<=[.!?])\s+(?=[A-ZÄÖÜ\"„'])", text) if x.strip()]
 
 
 # ---------- main ----------
@@ -243,7 +254,7 @@ def main():
             log("summary failed, using feed teaser:", a["title"], e)
             preview, sections = a["teaser"], []
         if not preview:
-            preview = a["teaser"]
+            preview = a["teaser"] or " ".join(sentences(text)[:2])
         full = a["title"] + " " + text
         cos = [k for k, pat in COMPANIES.items() if re.search(pat, full)] if {"claude", "ki"} & set(a["topics"]) else []
         art = dict(source=a["source"], title=a["title"], url=a["url"], published=a["published"], topics=a["topics"],
