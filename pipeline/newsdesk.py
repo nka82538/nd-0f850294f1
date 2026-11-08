@@ -218,7 +218,7 @@ def sentences(text):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=os.path.join(HERE, "..", "data.json"))
-    ap.add_argument("--model", default=os.environ.get("NEWSDESK_MODEL", "gemma3:4b"))
+    ap.add_argument("--model", default=os.environ.get("NEWSDESK_MODEL", "gemma3:12b"))
     ap.add_argument("--host", default=os.environ.get("OLLAMA_HOST_URL", "http://127.0.0.1:11434"))
     ap.add_argument("--limit", type=int, default=45)
     ap.add_argument("--dry", action="store_true", help="only list the selected articles, no summaries")
